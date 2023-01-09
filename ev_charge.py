@@ -2,7 +2,7 @@
 import csv
 import numpy as np
 import pandas as pd
-#import scipy.sklearn as svm
+import sklearn.svm as svm
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
@@ -78,7 +78,7 @@ def weather_to_datetime(weather_unformatted):
 
 	return weather
 
-
+'''
 weather = file_to_list('weather.csv')
 kwhs = file_to_list('kwh_interval.csv')
 prices = file_to_list('price.csv')
@@ -110,12 +110,26 @@ while iterative_datetime < datetime(2019, 3, 18):
 
 hours = np.array(hours)
 list_to_file(hours, 'hours')
-
 '''
-node = loc['CIT']
+h = file_to_list('hours.csv')
+p = file_to_list('prices.csv')
 
-data = [sessions, weather]
+
+hours = []
+prices = list(map(float, p[1:,2]))
+
+
+for i in h[2:]:
+	try:
+		hours.append(list( map(float,i) ))
+	except:
+		pass
+
+
+
 
 predict = svm.SVC(C=float('inf'), kernel='poly', degree = 2, gamma = 0.1)
-predict.fit(sessions, )
-'''
+predict.fit(hours, prices)
+
+print(predict.predict(hours[-1]))
+print(prices[-1])
