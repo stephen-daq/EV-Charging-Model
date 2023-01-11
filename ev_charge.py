@@ -6,6 +6,19 @@ import sklearn.svm as svm
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
+models = [
+	'linear',
+	'poly',
+	'rbf',
+	'sigmoid'
+]
+
+colors = [
+	'orange',
+	'yellow',
+	'purple',
+	'green'
+]
 
 def string_to_datetime1(datetime_string):
 	return datetime.strptime(datetime_string, '%a, %d %b %Y %H:%M:%S %Z')
@@ -116,20 +129,23 @@ p = file_to_list('prices.csv')
 
 
 hours = []
-prices = list(map(float, p[1:,2]))
+prices = list(map(float, p[1:,1]))
 
-
-for i in h[2:]:
+for i in h[2:,1:]:
 	try:
-		hours.append(list( map(float,i) ))
+		hours.append( list(map(float,i)) )
 	except:
 		pass
 
 
+[a.pop(2) for a in hours]
 
+plt.plot(prices[:3000], color='blue')
 
-predict = svm.SVC(C=float('inf'), kernel='poly', degree = 2, gamma = 0.1)
-predict.fit(hours, prices)
+for i in range(4):
+	predict = svm.SVR(kernel=models[i], C=5)
+	predict.fit(hours[:3000], prices[:3000])
 
-print(predict.predict(hours[-1]))
-print(prices[-1])
+	plt.plot(predict.predict(hours[:3000]), color=colors[i])
+
+plt.show()
