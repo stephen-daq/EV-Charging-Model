@@ -1,12 +1,14 @@
-
 import csv
 import numpy as np
 import pandas as pd
-import sklearn.svm as svm
 import matplotlib.pyplot as plt
+from sklearn import metrics
+from sklearn import kernel_ridge
+from sklearn import linear_model
+from sklearn import neural_network
 from datetime import datetime, timedelta
 
-models = [
+svm_kernels = [
 	'linear',
 	'poly',
 	'rbf',
@@ -34,7 +36,7 @@ def datetime_to_string(dt):
 
 def file_to_list(name):
 
-	with open(name, newline='') as file:
+	with open(f'{name}.csv', newline='') as file:
 		reader = csv.reader(file)
 		ret = np.array(list(reader))
 	return ret
@@ -91,6 +93,51 @@ def weather_to_datetime(weather_unformatted):
 
 	return weather
 
+def get_ridge_kernels(errs):
+	ridge_kernels = metrics.pairwise.PAIRWISE_KERNEL_FUNCTIONS
+	ridge_kernels = list(ridge_kernels.keys())
+	ridge_kernels.remove('chi2')
+
+	for m in ridge_kernels:
+		ridge = kernel_ridge.KernelRidge(kernel=m)
+		ridge.fit(hours[::2], prices[::2])
+
+		ridge_prediction = ridge.predict(hours[1::2])
+		score = ridge.score(hours[1::2], prices[1::2])
+
+		plt.plot(prices[1::2], color='blue')
+		plt.plot(ridge_prediction, color='orange')
+
+		plt.savefig(f'results\\kernel_ridge_{m}.png')
+		errs.append([f'kernel_ridge_{m}', score])
+	
+	return errs
+
+def get_mlp(errs, tol=0.0001):
+	activation = ['identity', 'logistic', 'tanh', 'relu']
+	solver = ['lbfgs', 'sgd', 'adam']
+
+	for a in activation:
+		for s in solver:
+			try:
+				regressor = neural_network.MLPRegressor(activation=a, solver=s, max_iter=1000, tol=tol)
+				regressor.fit(hours[::2], prices[::2])
+
+				prediction = regressor.predict(hours[1::2])
+				score = regressor.score(hours[1::2], prices[1::2])
+
+				plt.plot(prices[1::2], color='blue')
+				plt.plot(prediction, color='orange')
+
+				plt.savefig(f'results\\mlp_act={a}_sol={s}.png')
+				errs.append([f'mlp_act={a}_sol={s}', score])
+
+			except:
+				print(f'act={a} sol={s}')
+				
+	return errs
+
+
 '''
 weather = file_to_list('weather.csv')
 kwhs = file_to_list('kwh_interval.csv')
@@ -124,28 +171,41 @@ while iterative_datetime < datetime(2019, 3, 18):
 hours = np.array(hours)
 list_to_file(hours, 'hours')
 '''
-h = file_to_list('hours.csv')
-p = file_to_list('prices.csv')
 
+h = file_to_list('data\\hours')
+p = file_to_list('data\\prices')
 
 hours = []
 prices = list(map(float, p[1:,1]))
 
 for i in h[2:,1:]:
-	try:
-		hours.append( list(map(float,i)) )
-	except:
-		pass
+	for a in i:
+		try:
+			if float(a) < 0:
+				i[4] = 0
+		except:
+			pass
+		
+	temp = [float(i[0]), int(bool(i[1])), float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6]), float(i[7])]
+	hours.append(temp)
+
+errors = list(file_to_list('results\\model_errors')[1:,1:])
 
 
-[a.pop(2) for a in hours]
 
-plt.plot(prices[:3000], color='blue')
+list_to_file(errors, 'results\\model_errors')
+				
 
-for i in range(4):
-	predict = svm.SVR(kernel=models[i], C=5)
-	predict.fit(hours[:3000], prices[:3000])
+#lin_regression = linear.LinearRegression()
 
-	plt.plot(predict.predict(hours[:3000]), color=colors[i])
+'''
 
-plt.show()
+for model in svm_models:
+	predict = svm.SVR(kernel=model, C=0.1)
+	predict.fit(hours[::2], prices[::2])
+
+	prediction = predict.predict(hours[1::2])
+	plt.plot(prices[1::2], color='blue')
+	plt.plot(prediction, color='orange')
+	plt.savefig(f'{model}.png')
+'''
