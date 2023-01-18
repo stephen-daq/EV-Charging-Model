@@ -93,6 +93,18 @@ def weather_to_datetime(weather_unformatted):
 
 	return weather
 
+def get_daily_prices(prices):
+	avg_price_daily = np.zeros((24, 2))
+	for i in range(len(prices)):
+		avg_price_daily[i%24] += [prices[i], 1]
+
+	hourly_price = []
+	for a in avg_price_daily:
+		hourly_price.append(a[0]/a[1])
+
+	plt.plot(hourly_price, color='green')
+	plt.savefig('results\\daily_price.png')
+
 def get_ridge_kernels(errs):
 	ridge_kernels = metrics.pairwise.PAIRWISE_KERNEL_FUNCTIONS
 	ridge_kernels = list(ridge_kernels.keys())
@@ -177,6 +189,8 @@ p = file_to_list('data\\prices')
 
 hours = []
 prices = list(map(float, p[1:,1]))
+
+
 
 for i in h[2:,1:]:
 	for a in i:
