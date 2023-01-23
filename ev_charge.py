@@ -245,6 +245,7 @@ score = r_score + l_score + m_score
 total_average = [(ridge_average[i] * (r_score / score)) + (linear_average[i] * (l_score / score)) + (mlp_average[i] * (m_score / score)) for i in range(24)]
 
 plt.plot(total_average)
+plt.ylim([80, 200])
 plt.savefig("results\\model results\\total_average")
 
 
