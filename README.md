@@ -8,7 +8,7 @@ data provided to the algorithm runs from 1-Oct-2019 to 18-Mar-2020, the first tw
 the month, time of day, weekday vs. weekend, temperature, and (most importantly) the KWH delivered by Caltech's ACN within the hour. The output is the hourly
 LMP data from CAISO.
 
-<p align="center"> <img src="results/kernel_ridge_additive_chi2.png" width="75%" />
+<p align="center"> <img src="results/model errors/kernel_ridge_additive_chi2.png" width="75%" />
   <br>x-axis is hours from first data point
   <br>y-axis is LMP</br>
 </p>
@@ -48,3 +48,21 @@ throughout the day, allowing for increased consumption of renewables and more af
 |mlp_act=relu_sol=adam     |0.022185230661251554   |
   
 </p>
+
+## Generating the theoretical data
+In order to create a data set that could model the amount of KWHs delivered by a newly-installed Charging network, I used the sum of a couple normal distributions (optimized over their mean and standard deviation), and then scaled up by the amount of chargers that would be present in Northrop Grumman's network. I found that the curve did, in fact, flatten slightly. Using the top three models from our testing, I calculated a couple things: firstly, the predicition for each hour over the interval with the new charging data.
+<p align="center"> <img src="results/theoretical_pricing.png" width="75%" /> </p>
+This is, more or less, complete nonsense. If we instead take a look at each of the models individually, and take the pricing they predict over an average day, we get the following:
+
+<p align="center"> <img src="results/model results/ridge_average_pricing.png" width="75%" /> 
+  <br> Our best model, the Kernel Ridge Additive Chi2, for an average day.
+  <br> <img src="results/model results/linear_average_pricing.png" width="75%" />
+  <br> Linear regression, our second best model, gives us the above estimate.
+  <br> <img src="results/model results/mlp_average_pricing.png" width="75%" />
+  <br> Finally, our multilayer perceptron's estimate.
+</p>
+
+Now let's compare these graphs to that of our calculate daily LMP in Pasadena.
+<p align="center"> <img src="results/daily_price.png" width="75%" /> </p>
+This shows us that all of our top 3 models predict that the curve will be much flatter than before! This is great news, and is even further shown by our weighted average model of the top 3 models:
+<p align="center"> <img src="results/model results/total_average.png" width="75%" /> </p>
