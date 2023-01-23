@@ -2,11 +2,9 @@ import csv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn import metrics
-from sklearn import kernel_ridge
-from sklearn import linear_model
-from sklearn import neural_network
+import generate_data_set as generate
 from datetime import datetime, timedelta
+from sklearn import kernel_ridge, linear_model, neural_network
 
 svm_kernels = [
 	'linear',
@@ -102,17 +100,18 @@ def get_daily_prices(prices):
 	for a in avg_price_daily:
 		hourly_price.append(a[0]/a[1])
 
-	plt.plot(hourly_price, color='green')
-	plt.savefig('results\\daily_price.png')
-
-def get_ridge_kernels(errs):
+	#plt.plot(hourly_price, color='green')
+	#plt.savefig('results\\daily_price.png')
+	list_to_file(hourly_price, 'results\\hourly_price')
+'''
+def get_ridge_kernels(errs, hours, prices):
 	ridge_kernels = metrics.pairwise.PAIRWISE_KERNEL_FUNCTIONS
 	ridge_kernels = list(ridge_kernels.keys())
 	ridge_kernels.remove('chi2')
 
 	for m in ridge_kernels:
 		ridge = kernel_ridge.KernelRidge(kernel=m)
-		ridge.fit(hours[::2], prices[::2])
+		ridge.fit(hours, prices)
 
 		ridge_prediction = ridge.predict(hours[1::2])
 		score = ridge.score(hours[1::2], prices[1::2])
@@ -125,7 +124,7 @@ def get_ridge_kernels(errs):
 	
 	return errs
 
-def get_mlp(errs, tol=0.0001):
+def get_mlp(errs, hours, prices, tol=0.0001):
 	activation = ['identity', 'logistic', 'tanh', 'relu']
 	solver = ['lbfgs', 'sgd', 'adam']
 
@@ -133,7 +132,7 @@ def get_mlp(errs, tol=0.0001):
 		for s in solver:
 			try:
 				regressor = neural_network.MLPRegressor(activation=a, solver=s, max_iter=1000, tol=tol)
-				regressor.fit(hours[::2], prices[::2])
+				regressor.fit(hours, prices)
 
 				prediction = regressor.predict(hours[1::2])
 				score = regressor.score(hours[1::2], prices[1::2])
@@ -149,7 +148,7 @@ def get_mlp(errs, tol=0.0001):
 				
 	return errs
 
-
+'''
 '''
 weather = file_to_list('weather.csv')
 kwhs = file_to_list('kwh_interval.csv')
@@ -182,15 +181,13 @@ while iterative_datetime < datetime(2019, 3, 18):
 
 hours = np.array(hours)
 list_to_file(hours, 'hours')
-'''
+
 
 h = file_to_list('data\\hours')
 p = file_to_list('data\\prices')
 
 hours = []
 prices = list(map(float, p[1:,1]))
-
-
 
 for i in h[2:,1:]:
 	for a in i:
@@ -203,20 +200,59 @@ for i in h[2:,1:]:
 	temp = [float(i[0]), int(bool(i[1])), float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6]), float(i[7])]
 	hours.append(temp)
 
-errors = list(file_to_list('results\\model_errors')[1:,1:])
+hours = np.array(hours)
 
+days = []
+for i in range(int(len(hours) / 24)):
+	day = generate.generate_pricing_day(1000 * generate.CHARGERS_RATIO)
+	days = days + day
 
+input = [list(np.append(hours[i][:-1], days[i])) for i in range(len(days))]
+print(input)
 
-list_to_file(errors, 'results\\model_errors')
-				
+ridge = kernel_ridge.KernelRidge(kernel='additive_chi2')
+ridge.fit(hours, prices)
+ridge_pricing = ridge.predict(input)
 
-#lin_regression = linear.LinearRegression()
+linear = linear_model.LinearRegression()
+linear.fit(hours, prices)
+linear_pricing = linear.predict(input)
+
+mlp = neural_network.MLPRegressor()
+mlp.fit(hours, prices)
+mlp_pricing = mlp.predict(input)
+'''
+
+ridge_pricing = list(file_to_list('results\\model results\\ridge_pricing')[1:, 1:])
+linear_pricing = list(file_to_list('results\\model results\\linear_pricing')[1:, 1:])
+mlp_pricing = list(file_to_list('results\\model results\\mlp_pricing')[1:, 1:])
+
+ridge_pricing = [float(r) for r in ridge_pricing]
+linear_pricing = [float(r) for r in linear_pricing]
+mlp_pricing = [float(r) for r in mlp_pricing]
+
+ridge_average, linear_average, mlp_average = list(np.zeros(24)), list(np.zeros(24)), list(np.zeros(24))
+
+for i in range(len(ridge_pricing)):
+	ridge_average[i%24] += ridge_pricing[i] * 24 / len(ridge_pricing)
+	linear_average[i%24] += linear_pricing[i] * 24 / len(ridge_pricing)
+	mlp_average[i%24] += mlp_pricing[i] * 24 / len(ridge_pricing)
+
+r_score = 0.28
+l_score = 0.25
+m_score = 0.16
+score = r_score + l_score + m_score
+total_average = [(ridge_average[i] * (r_score / score)) + (linear_average[i] * (l_score / score)) + (mlp_average[i] * (m_score / score)) for i in range(24)]
+
+plt.plot(total_average)
+plt.savefig("results\\model results\\total_average")
+
 
 '''
 
 for model in svm_models:
 	predict = svm.SVR(kernel=model, C=0.1)
-	predict.fit(hours[::2], prices[::2])
+	predict.fit(hours, prices)
 
 	prediction = predict.predict(hours[1::2])
 	plt.plot(prices[1::2], color='blue')
